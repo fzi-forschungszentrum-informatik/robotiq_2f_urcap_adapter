@@ -1,6 +1,6 @@
 # Robotiq 2F-85 URCap Adapter
 
-This is a direct control interface to the Robotiq *2F-85 gripper URCap* via Universal Robot's Modbus.
+This is a direct control interface to the Robotiq *2F-85 gripper URCap* via Universal Robot's [Modbus](https://www.universal-robots.com/articles/ur/interface-communication/modbus-server/).
 
 ---
 

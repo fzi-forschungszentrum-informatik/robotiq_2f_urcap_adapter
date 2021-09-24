@@ -1,0 +1,15 @@
+# Request
+uint8 mode
+uint8 OPEN_GRIPPER = 0
+uint8 CLOSE_GRIPPER = 1
+
+---
+
+# Result
+bool success
+string message
+
+---
+
+# Feedback
+# float64 progress # in %
