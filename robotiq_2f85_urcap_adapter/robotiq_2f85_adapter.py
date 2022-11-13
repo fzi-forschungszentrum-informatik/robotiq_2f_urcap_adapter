@@ -19,8 +19,9 @@ Module containing adapters for the Robotq_2f85 offering a direct interface betwe
 import socket
 import threading
 import time
-from collections import OrderedDict
+import typing
 from enum import Enum
+from collections import OrderedDict
 from typing import Union, Tuple
 
 import rclpy
@@ -215,7 +216,7 @@ class GripperAdapter:
         """Closes the connection with the gripper."""
         self.socket.close()
 
-    def _set_vars(self, var_dict: OrderedDict[str, Union[int, float]]):
+    def _set_vars(self, var_dict: typing.OrderedDict[str, Union[int, float]]):
         """Sends the appropriate command via socket to set the value of n variables, and waits for its 'ack' response.
         :param var_dict: Dictionary of variables to set (variable_name, value).
         :return: True on successful reception of ack, false if no ack was received, indicating the set may not

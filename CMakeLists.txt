@@ -15,7 +15,7 @@ ament_python_install_package(${PROJECT_NAME})
 
 # Install Python executables
 install(PROGRAMS
-  scripts/urcap_adapter.py
+  scripts/robotiq_2f85_adapter_node.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

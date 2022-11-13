@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # Copyright (c) 2022 FZI Forschungszentrum Informatik
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +16,7 @@
 import sys
 
 from robotiq_2f85_urcap_adapter.action import MoveGripper
-from robotiq_2f85_urcap_adapter import Robotiq2f85Adapter
+from robotiq_2f85_urcap_adapter import Robotiq2f85AdapterNode
 
 import rclpy
 from rclpy.executors import MultiThreadedExecutor
@@ -23,7 +25,7 @@ from rclpy.executors import MultiThreadedExecutor
 def main(args=None):
     rclpy.init(args=args)
 
-    gripper_control_adapter = Robotiq2f85Adapter()
+    gripper_control_adapter = Robotiq2f85AdapterNode()
 
     executor = MultiThreadedExecutor(num_threads=2)
     executor.add_node(gripper_control_adapter)
@@ -38,4 +40,4 @@ def main(args=None):
 
 
 if __name__ == "__main__":
-    main(args=sys.argv[1:])
+    main()

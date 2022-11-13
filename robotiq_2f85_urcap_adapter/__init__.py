@@ -1,1 +1,1 @@
-from robotiq_2f85_adapter import Robotiq2f85Adapter
+from .robotiq_2f85_adapter import Robotiq2f85AdapterNode
