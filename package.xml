@@ -19,18 +19,21 @@ limitations under the License.
   <name>robotiq_2f85_urcap_adapter</name>
   <version>0.0.0</version>
   <description>Direct control interface to the Robotiq 2F-85 gripper URCap via Universal Robot's Modbus.</description>
-  <author email="scherzin@fzi.de">scherzin</author>
   <maintainer email="oberacker@fzi.de">David Oberacker</maintainer>
   <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake_python</buildtool_depend>
   <buildtool_depend>rosidl_default_generators</buildtool_depend>
-  
+
   <depend>action_msgs</depend>
-  <member_of_group>rosidl_interface_packages</member_of_group>
 
   <exec_depend>rclpy</exec_depend>
   <exec_depend>std_srvs</exec_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <member_of_group>rosidl_interface_packages</member_of_group>
 
   <export>
     <build_type>ament_cmake</build_type>
