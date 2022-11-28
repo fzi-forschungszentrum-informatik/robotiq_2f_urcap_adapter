@@ -21,12 +21,14 @@ import time
 import typing
 from enum import Enum
 from collections import OrderedDict
-from typing import Union, Tuple
+from typing import Optional, Union, Tuple
+from unicodedata import name
 
 import rclpy
 from rclpy.action import ActionServer
 from rclpy.executors import MultiThreadedExecutor
-from rclpy.node import Node
+from rclpy.node import Node, ParameterDescriptor, ParameterType,\
+    ParameterNotDeclaredException, ParameterUninitializedException
 from sensor_msgs.msg import JointState
 
 from robotiq_2f85_urcap_adapter.action import MoveGripper
@@ -75,12 +77,108 @@ class Robotiq2f85AdapterNode(Node):
             self, MoveGripper, "~/move_gripper", self.execute_callback
         )
 
-        self.declare_parameter("robot_ip", "192.168.0.104")
-        self.declare_parameter("robot_port", 502)
-        self.declare_parameter("publish_fake_joint_values", True)
+        self.declare_parameter(
+            name="robot_ip",
+            value="192.168.0.104",
+            descriptor=ParameterDescriptor(
+                name="robot_ip",
+                type=ParameterType.PARAMETER_STRING,
+                description="IP address of the URCAP server controlling the gripper."
+            )
+        )
+        self.declare_parameter(
+            name="robot_port",
+            value=502,
+            descriptor=ParameterDescriptor(
+                name="robot_port",
+                type=ParameterType.PARAMETER_INTEGER,
+                description="Port for the URCAP server controlling the gripper."
+            )
+        )
+        self.declare_parameter(
+            name="publish_fake_joint_values",
+            value=True,
+            descriptor=ParameterDescriptor(
+                name="publish_fake_joint_values",
+                type=ParameterType.PARAMETER_BOOL,
+                description="Publish joint value estimates depending on the current gripper pose."
+            )
+        )
+        self.declare_parameter(
+            name="robot_max_speed",
+            value=150.0,
+            descriptor=ParameterDescriptor(
+                name="robot_max_speed",
+                type=ParameterType.PARAMETER_DOUBLE,
+                description="Maximum speed at which the gripper can move. Used for normalization."
+            )
+        )
+        self.declare_parameter(
+            name="robot_min_speed",
+            value=20.0,
+            descriptor=ParameterDescriptor(
+                name="robot_min_speed",
+                type=ParameterType.PARAMETER_DOUBLE,
+                description="Minimum speed at which the gripper can move. Used for normalization."
+            )
+        )
+        self.declare_parameter(
+            name="robot_max_effort",
+            value=235.0,
+            descriptor=ParameterDescriptor(
+                name="robot_max_effort",
+                type=ParameterType.PARAMETER_DOUBLE,
+                description="Maximum effort which the gripper excert. Used for normalization."
+            )
+        )
+        self.declare_parameter(
+            name="robot_min_effort",
+            value=20.0,
+            descriptor=ParameterDescriptor(
+                name="robot_max_effort",
+                type=ParameterType.PARAMETER_DOUBLE,
+                description="Minimum effort which the gripper excert. Used for normalization."
+            )
+        )
 
-        robot_ip: str = self.get_parameter("robot_ip").value
-        robot_port: int = self.get_parameter("robot_port").value
+        try:
+
+            robot_ip: Optional[str] = self.get_parameter("robot_ip").value
+            if robot_ip is None:
+                raise ParameterUninitializedException(parameter_name="robot_ip")
+
+            robot_port: Optional[int] = self.get_parameter("robot_port").value
+            if robot_port is None:
+                raise ParameterUninitializedException(parameter_name="robot_port")
+
+            publish_fake_joint_values: Optional[bool] = self.get_parameter(
+                "publish_fake_joint_values"
+                ).value
+            if publish_fake_joint_values is None:
+                raise ParameterUninitializedException(parameter_name="publish_fake_joint_values")
+
+            robot_max_speed: Optional[float] = self.get_parameter("robot_max_speed").value
+            if robot_max_speed is None:
+                raise ParameterUninitializedException(parameter_name="robot_max_speed")
+
+            robot_min_speed: Optional[float] = self.get_parameter("robot_min_speed").value
+            if robot_min_speed is None:
+                raise ParameterUninitializedException(parameter_name="robot_min_speed")
+
+            robot_max_effort: Optional[float] = self.get_parameter("robot_max_effort").value
+            if robot_max_effort is None:
+                raise ParameterUninitializedException(parameter_name="robot_max_effort")
+
+            robot_min_effort: Optional[float] = self.get_parameter("robot_min_effort").value
+            if robot_min_effort is None:
+                raise ParameterUninitializedException(parameter_name="robot_min_effort")
+
+        except ParameterNotDeclaredException as exc:
+            self.get_logger().error(f"Parameter not declated: {exc}")
+            raise RuntimeError() from exc
+        except ParameterUninitializedException as exc:
+            self.get_logger().error(f"Parameter uninitialized: {exc}")
+            raise RuntimeError() from exc\
 
         self.get_logger().info(f"Connecting to URCAP on {robot_ip}:{robot_port}!")
 
@@ -89,7 +187,11 @@ class Robotiq2f85AdapterNode(Node):
 
         self.get_logger().info(f"Connected to URCAP on {robot_ip}:{robot_port}!")
 
-        publish_fake_joint_values = self.get_parameter("publish_fake_joint_values").value
+        self._normalized_effort_factor = (robot_max_effort - robot_min_effort) / 255
+        self._normalized_effort_baseline = robot_min_effort
+
+        self._normalized_speed_factor = (robot_max_speed - robot_min_speed) / 255
+        self._normalized_speed_baseline = robot_min_speed
 
         self.joint_value = 0.0
         self.velocity = 0.5
@@ -97,6 +199,90 @@ class Robotiq2f85AdapterNode(Node):
             self.joint_val_pub = self.create_publisher(JointState, "joint_states", 10)
             self.timer_period = 1.0 / 50
             self.timer = self.create_timer(self.timer_period, self.publish_joint_values)
+
+    def __newton_from_normalized_effort_value(self, normalized_value: int) -> float:
+        """Calculate a effort value in Newton for a normalized effort value [0-255].
+
+        The calculation is dependent on the effort limits of the robot.
+
+        :param normalized_value: The normalized effort value that should be transfered into a
+        Newton value.
+        :type normalized_value: int
+        :raises ValueError: If the provided normalized_value is not within the bounds of 0-255,
+        this error is raised.
+        :return: The effort in Newton.
+        :rtype: float
+        """
+        if normalized_value < 0 or normalized_value > 255:
+            raise ValueError("Normalized value should be in the range of [0, 255]")
+        return (normalized_value * self._normalized_effort_factor) \
+            + self._normalized_effort_baseline
+
+    def __normalized_effort_value_from_newton(self, newton_effort: float) -> int:
+        """Calculate a normalized effort value [0-255] from a effort specification in Newton.
+
+        This calculation is dependent on the effort limits of the robot.
+
+        :param newton_effort: The newton effort that should be normalized into the range of 0-255.
+        :type newton_effort: float
+        :raises ValueError: If the specified newton_effort exceeds the limits of the robot, this
+        error is raised.
+        :return: The provided effort value normalized to the range of 0-255.
+        :rtype: int
+        """
+        if newton_effort < self.__newton_from_normalized_effort_value(0) \
+            or newton_effort > self.__newton_from_normalized_effort_value(255):
+            raise ValueError(
+                "Provided effort in newton exceeds limits of the gripper."
+                "Validate that the provided force in within the specs of the gripper!"
+                )
+
+        return int(
+            (newton_effort - self._normalized_effort_baseline) / self._normalized_effort_factor
+            )
+
+    def __mm_s_from_normalized_speed_value(self, normalized_value: int) -> float:
+        """Calculate a mm/s speed value from the normalized speed values.
+
+        This calculation is dependent on the maximum and minimum speed values of the robot.
+
+        :param normalized_value: The speed value normalized to the range of 0-255 dependent on the
+        robots speed limits.
+        :type normalized_value: int
+        :raises ValueError: If the provided normalized speed value is out of the range of 0-255,
+        this error is raised.
+        :return: The provided speed value in mm/s depending on the robot speed limits.
+        :rtype: float
+        """        """"""
+        if normalized_value < 0 or normalized_value > 255:
+            raise ValueError("Normalized value should be in the range of [0, 255]")
+        return (normalized_value * self._normalized_speed_factor) \
+            + self._normalized_speed_baseline
+
+    def __normalized_speed_value_from_mm_s(self, mm_s_speed: float) -> int:
+        """Calculate a normalized speed value [0-255] from mm/s speed values.
+
+        This calculation is dependent on the maximum and minimum speed values of the robot.
+
+        :param mm_s_speed: The speed value to be transformed into a normalized format.
+        This value should be within the maximum and minimum values for the gripper.
+        :type mm_s_speed: float
+        :raises ValueError: If the provided mm/s speed value is not within the limits of the gripper
+        this error is raised.
+        :return: The normalized speed value [0-255] calculated from the mm/s input parameter.
+        :rtype: int
+        """
+        if mm_s_speed < self.__mm_s_from_normalized_speed_value(0) \
+            or mm_s_speed > self.__mm_s_from_normalized_speed_value(255):
+            raise ValueError(
+                "Provided speed in mm/s exceeds limits of the gripper."
+                "Validate that the provided speed in within the specs of the gripper!"
+                )
+
+        return int(
+            (mm_s_speed - self._normalized_speed_baseline) / self._normalized_speed_factor
+            )
+
 
     def disconnect(self):
         """Disconnect from the URCAP socket."""
