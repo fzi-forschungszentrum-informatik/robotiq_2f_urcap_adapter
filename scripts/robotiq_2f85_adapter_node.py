@@ -221,7 +221,8 @@ class Robotiq2f85SocketAdapter:
     def disconnect(self) -> None:
         """Close the connection with the gripper."""
         with self.socket_lock:
-            self.socket.close()
+            if self.socket is not None:
+                self.socket.close()
 
     def __set_gripper_variables(self, variable_dict: typing.OrderedDict[str, Union[int, float]]):
         """
@@ -238,9 +239,12 @@ class Robotiq2f85SocketAdapter:
         cmd += '\n'  # new line is required for the command to finish
         # atomic commands send/rcv
         with self.socket_lock:
-            self.socket.sendall(cmd.encode(self.ENCODING))
-            data = self.socket.recv(1024)
-        return self._is_ack(data)
+            if self.socket is not None:
+                self.socket.sendall(cmd.encode(self.ENCODING))
+                data = self.socket.recv(1024)
+                return self._is_ack(data)
+            else:
+                raise RuntimeError("Socket is none!")
 
     def __set_gripper_variable(self, variable: str, value: Union[int, float]):
         """
@@ -267,8 +271,11 @@ class Robotiq2f85SocketAdapter:
         # atomic commands send/rcv
         cmd = f"{self.__GET_COMMAND} {variable}\n"
         with self.socket_lock:
-            self.socket.sendall(cmd.encode(self.ENCODING))
-            data = self.socket.recv(1024)
+            if self.socket is not None:
+                self.socket.sendall(cmd.encode(self.ENCODING))
+                data = self.socket.recv(1024)
+            else:
+                raise RuntimeError("Socket is none!")
 
         var_name, value_str = data.decode(self.ENCODING).split()
         if var_name != variable:
