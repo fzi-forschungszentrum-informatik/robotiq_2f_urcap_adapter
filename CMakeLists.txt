@@ -8,6 +8,8 @@ find_package(rosidl_default_generators REQUIRED)
 # Build actions
 rosidl_generate_interfaces(${PROJECT_NAME}
   "action/MoveGripper.action"
+  "action/GripperCommand.action"
+  "msg/GripperCommand.msg"
 )
 
 if(BUILD_TESTING)

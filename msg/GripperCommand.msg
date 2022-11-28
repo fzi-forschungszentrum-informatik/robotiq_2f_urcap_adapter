@@ -1,0 +1,3 @@
+float64 position
+float64 max_effort
+float64 max_speed
