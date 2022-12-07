@@ -1,5 +1,3 @@
-# MIT License
-#
 # Copyright (c) 2019 Anders Prier Lindvig - SDU Robotics
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -19,6 +17,11 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+#
+#####################################################
+# Modifications 2022 FZI Forschungszentrum Informatik
+# Original source as of 2022-12-07:
+# https://gitlab.com/sdurobotics/ur_rtde/blob/master/doc/_static/robotiq_gripper.py
 
 """Module that encapsulates the socket interface to the Robotiq Grippers URCap."""
 
