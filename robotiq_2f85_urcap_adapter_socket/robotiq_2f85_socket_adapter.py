@@ -277,17 +277,17 @@ class Robotiq2f85SocketAdapter:
         return self.max_position
 
     @property
-    def is_open(self):
-        """Return whether the current position is considered as being fully open."""
-        return self.current_position <= self.open_position
+    def force(self) -> int:
+        """Return the current force used by the gripper."""
+        return self.__get_gripper_variable(self.FOR)
 
     @property
-    def is_closed(self):
-        """Return whether the current position is considered as being fully closed."""
-        return self.current_position >= self.closed_position
+    def speed(self) -> int:
+        """Return the current speed used by the gripper."""
+        return self.__get_gripper_variable(self.SPE)
 
     @property
-    def current_position(self) -> int:
+    def position(self) -> int:
         """Return the current position as returned by the physical hardware."""
         return self.__get_gripper_variable(self.POS)
 

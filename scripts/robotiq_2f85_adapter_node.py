@@ -24,6 +24,7 @@
 import socket
 import threading
 import time
+from turtle import speed
 import typing
 from enum import Enum
 from collections import OrderedDict
@@ -42,6 +43,11 @@ from robotiq_2f85_urcap_adapter.msg import GripperCommand as GripperCommandMsg
 
 from robotiq_2f85_urcap_adapter.robotiq_2f85_socket_adapter import ObjectStatus
 from robotiq_2f85_urcap_adapter.robotiq_2f85_socket_adapter import Robotiq2f85SocketAdapter
+
+M_S_TO_MM_S = 1000
+MM_S_TO_M_S = 0.001
+M_TO_MM = 1000
+MM_TO_M = 0.001
 
 class Robotiq2f85AdapterNode(Node):
     """ROS node offering ROS actions to control a Robotq2f85 gripper using string commands."""
@@ -77,12 +83,30 @@ class Robotiq2f85AdapterNode(Node):
             )
         )
         self.declare_parameter(
+            name="robot_max_stroke",
+            value=85.0,
+            descriptor=ParameterDescriptor(
+                name="robot_max_stroke",
+                type=ParameterType.PARAMETER_DOUBLE,
+                description="Maximum stroke length (mm) the gripper can open to. Used for normalization."
+            )
+        )
+        self.declare_parameter(
+            name="robot_min_stroke",
+            value=0.0,
+            descriptor=ParameterDescriptor(
+                name="robot_min_stroke",
+                type=ParameterType.PARAMETER_DOUBLE,
+                description="Minimum stroke length (mm) the gripper can close to. Used for normalization."
+            )
+        )
+        self.declare_parameter(
             name="robot_max_speed",
             value=150.0,
             descriptor=ParameterDescriptor(
                 name="robot_max_speed",
                 type=ParameterType.PARAMETER_DOUBLE,
-                description="Maximum speed at which the gripper can move. Used for normalization."
+                description="Maximum speed (mm/2) at which the gripper can move. Used for normalization."
             )
         )
         self.declare_parameter(
@@ -91,7 +115,7 @@ class Robotiq2f85AdapterNode(Node):
             descriptor=ParameterDescriptor(
                 name="robot_min_speed",
                 type=ParameterType.PARAMETER_DOUBLE,
-                description="Minimum speed at which the gripper can move. Used for normalization."
+                description="Minimum speed (mm/2) at which the gripper can move. Used for normalization."
             )
         )
         self.declare_parameter(
@@ -100,7 +124,7 @@ class Robotiq2f85AdapterNode(Node):
             descriptor=ParameterDescriptor(
                 name="robot_max_effort",
                 type=ParameterType.PARAMETER_DOUBLE,
-                description="Maximum effort which the gripper excert. Used for normalization."
+                description="Maximum effort (N) which the gripper excert. Used for normalization."
             )
         )
         self.declare_parameter(
@@ -109,7 +133,7 @@ class Robotiq2f85AdapterNode(Node):
             descriptor=ParameterDescriptor(
                 name="robot_max_effort",
                 type=ParameterType.PARAMETER_DOUBLE,
-                description="Minimum effort which the gripper excert. Used for normalization."
+                description="Minimum effort (N) which the gripper excert. Used for normalization."
             )
         )
 
@@ -123,20 +147,28 @@ class Robotiq2f85AdapterNode(Node):
             if robot_port is None:
                 raise ParameterUninitializedException(parameter_name="robot_port")
 
-            robot_max_speed: Optional[float] = self.get_parameter("robot_max_speed").value
-            if robot_max_speed is None:
+            robot_max_stroke_mm: Optional[float] = self.get_parameter("robot_max_stroke").value
+            if robot_max_stroke_mm is None:
+                raise ParameterUninitializedException(parameter_name="robot_max_stroke")
+
+            robot_min_stroke_mm: Optional[float] = self.get_parameter("robot_min_stroke").value
+            if robot_min_stroke_mm is None:
+                raise ParameterUninitializedException(parameter_name="robot_min_stroke")
+
+            robot_max_speed_mm_s: Optional[float] = self.get_parameter("robot_max_speed").value
+            if robot_max_speed_mm_s is None:
                 raise ParameterUninitializedException(parameter_name="robot_max_speed")
 
-            robot_min_speed: Optional[float] = self.get_parameter("robot_min_speed").value
-            if robot_min_speed is None:
+            robot_min_speed_mm_s: Optional[float] = self.get_parameter("robot_min_speed").value
+            if robot_min_speed_mm_s is None:
                 raise ParameterUninitializedException(parameter_name="robot_min_speed")
 
-            robot_max_effort: Optional[float] = self.get_parameter("robot_max_effort").value
-            if robot_max_effort is None:
+            robot_max_effort_N: Optional[float] = self.get_parameter("robot_max_effort").value
+            if robot_max_effort_N is None:
                 raise ParameterUninitializedException(parameter_name="robot_max_effort")
 
-            robot_min_effort: Optional[float] = self.get_parameter("robot_min_effort").value
-            if robot_min_effort is None:
+            robot_min_effort_N: Optional[float] = self.get_parameter("robot_min_effort").value
+            if robot_min_effort_N is None:
                 raise ParameterUninitializedException(parameter_name="robot_min_effort")
 
         except ParameterNotDeclaredException as exc:
@@ -153,14 +185,14 @@ class Robotiq2f85AdapterNode(Node):
 
         self.get_logger().info(f"Connected to URCAP on {robot_ip}:{robot_port}!")
 
-        self._normalized_position_factor = (self.gripper_adapter.max_position - self.gripper_adapter.min_position) / 255
-        self._normalized_position_baseline = self.gripper_adapter.min_position
+        self._normalized_stroke_factor = (robot_max_stroke_mm - robot_min_stroke_mm) / 255
+        self._normalized_stroke_baseline = robot_min_stroke_mm
 
-        self._normalized_effort_factor = (robot_max_effort - robot_min_effort) / 255
-        self._normalized_effort_baseline = robot_min_effort
+        self._normalized_effort_factor = (robot_max_effort_N - robot_min_effort_N) / 255
+        self._normalized_effort_baseline = robot_min_effort_N
 
-        self._normalized_speed_factor = (robot_max_speed - robot_min_speed) / 255
-        self._normalized_speed_baseline = robot_min_speed
+        self._normalized_speed_factor = (robot_max_speed_mm_s - robot_min_speed_mm_s) / 255
+        self._normalized_speed_baseline = robot_min_speed_mm_s
 
         self.joint_value = 0.0
         self.velocity = 0.5
@@ -249,11 +281,23 @@ class Robotiq2f85AdapterNode(Node):
             )
 
 
-    def __absolute_position_value_to_normalized_position(self, normalized_position: float) -> int:
+    def __mm_position_value_from_normalized_position(self, normalized_position: int) -> float:
         if normalized_position < 0 or normalized_position > 255:
             raise ValueError("Normalized position should be in the range of [0, 255]")
-        return int((normalized_position * self._normalized_position_factor) \
-            + self._normalized_position_baseline)
+        return int((normalized_position * self._normalized_stroke_factor) \
+            + self._normalized_stroke_baseline)
+
+    def __normalized_position_value_from_mm(self, mm: float) -> int:
+        if mm < self.__mm_position_value_from_normalized_position(0) \
+            or mm > self.__mm_position_value_from_normalized_position(255):
+            raise ValueError(
+                "Provided speed in mm exceeds limits of the gripper."
+                "Validate that the provided speed in within the specs of the gripper!"
+                )
+
+        return int(
+            (mm - self._normalized_stroke_baseline) / self._normalized_stroke_factor
+            )
 
     def disconnect(self):
         """Disconnect from the URCAP socket."""
@@ -261,30 +305,71 @@ class Robotiq2f85AdapterNode(Node):
         self.gripper_adapter.disconnect()
 
     def __move_gripper_to_position(self, goal_handle,
-                                   position: float,
-                                   max_effort: float,
-                                   max_speed: float
+                                   position_mm: float,
+                                   max_effort_N: float,
+                                   max_speed_mm_s: float
                                    ) -> GripperCommandAction.Result:
-        if self.gripper_adapter.current_position == position:
+        target_position_normalized = self.__normalized_position_value_from_mm(position_mm)
+        if self.gripper_adapter.position == target_position_normalized:
             goal_handle.succeed()
             return GripperCommandAction.Result(
-                position=position,
-                effort=max_effort,
+                position=position_mm,
+                effort=0,
+                speed=0,
                 stalled=False,
                 reached_goal=True
             )
 
-        last_position, object_status = self.gripper_adapter.move_and_wait_for_pos(
-            position=self.__absolute_position_value_to_normalized_position(position),
-            speed=self.__normalized_speed_value_from_mm_s(max_speed),
-            force=self.__normalized_effort_value_from_newton(max_effort)
+        set_ok, cmd_pos  = self.gripper_adapter.move(
+            position=target_position_normalized,
+            speed=self.__normalized_speed_value_from_mm_s(max_speed_mm_s),
+            force=self.__normalized_effort_value_from_newton(max_effort_N)
         )
+        if not set_ok:
+            return GripperCommandAction.Result(
+                position=self.gripper_adapter.position,
+                effort=0,
+                speed=0,
+                stalled=False,
+                reached_goal=False
+            )
+
+        while self.gripper_adapter.__get_gripper_variable(self.gripper_adapter.PRE) != cmd_pos:
+            goal_handle.publish_feedback(
+                GripperCommandAction.Feedback(
+                    position=self.gripper_adapter.position,
+                    effort=0,
+                    speed=0,
+                    stalled=False,
+                    reached_goal=False
+                )
+            )
+            time.sleep(0.001)
+
+        # wait until not moving
+        object_status = ObjectStatus(
+                self.gripper_adapter.__get_gripper_variable(self.gripper_adapter.OBJ)
+                )
+        while object_status == ObjectStatus.MOVING:
+            object_status = ObjectStatus(
+                self.gripper_adapter.__get_gripper_variable(self.gripper_adapter.OBJ)
+                )
+            goal_handle.publish_feedback(
+                GripperCommandAction.Feedback(
+                    position=self.gripper_adapter.position,
+                    effort=self.gripper_adapter.force,
+                    speed=self.gripper_adapter.speed,
+                    stalled=False,
+                    reached_goal=False
+                )
+            )
 
         if object_status == ObjectStatus.AT_DEST:
             goal_handle.succeed()
             return GripperCommandAction.Result(
-                position=last_position,
-                effort=max_effort,
+                position=self.gripper_adapter.position,
+                effort=self.gripper_adapter.force,
+                speed=self.gripper_adapter.speed,
                 stalled=False,
                 reached_goal=True
             )
@@ -297,15 +382,17 @@ class Robotiq2f85AdapterNode(Node):
             goal_handle.abort()
 
             return GripperCommandAction.Result(
-                position=last_position,
-                effort=max_effort,
+                position=self.gripper_adapter.position,
+                effort=self.gripper_adapter.force,
+                speed=self.gripper_adapter.speed,
                 stalled=True,
                 reached_goal=False
             )
         goal_handle.abort()
         return GripperCommandAction.Result(
-                position=last_position,
-                effort=max_effort,
+                position=self.gripper_adapter.position,
+                effort=0,
+                speed=0,
                 stalled=False,
                 reached_goal=False
             )
@@ -319,12 +406,12 @@ class Robotiq2f85AdapterNode(Node):
         """
         goal: GripperCommandAction.Goal = goal_handle.request
 
-        self.get_logger().info("Opening gripper via modbus")
+
         return self.__move_gripper_to_position(
             goal_handle=goal_handle,
-            position=goal.command.position,
-            max_effort=goal.command.max_effort,
-            max_speed=goal.command.max_speed
+            position_mm=goal.command.position * M_TO_MM,
+            max_effort_N=goal.command.max_effort,
+            max_speed_mm_s=goal.command.max_speed * M_S_TO_MM_S
         )
 
 def main(args=None):
