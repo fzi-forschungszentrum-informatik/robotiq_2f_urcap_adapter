@@ -76,8 +76,8 @@ class Robotiq2f85AdapterNode(Node):
         )
 
         self.declare_parameter("robot_ip", "192.168.0.104")
-        self.declare_parameter("robot_port", 502)
-        self.declare_parameter("publish_fake_joint_values", True)
+        self.declare_parameter("robot_port", 63352)
+        self.declare_parameter("publish_fake_joint_values", False)
 
         robot_ip: str = self.get_parameter("robot_ip").value
         robot_port: int = self.get_parameter("robot_port").value
