@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(robotiq_2f85_urcap_adapter)
+project(robotiq_2f_urcap_adapter)
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
@@ -27,7 +27,7 @@ ament_python_install_package(${PROJECT_NAME}_socket)
 
 # Install Python executables
 install(PROGRAMS
-  scripts/robotiq_2f85_adapter_node.py
+  scripts/robotiq_2f_adapter_node.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

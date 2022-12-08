@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>robotiq_2f85_urcap_adapter</name>
+  <name>robotiq_2f_urcap_adapter</name>
   <version>0.0.0</version>
-  <description>Direct control interface to the Robotiq 2F-85 gripper URCap via Universal Robot's Modbus.</description>
+  <description>Direct control interface to the Robotiq 2F gripper URCap via Socket and String Commands</description>
   <maintainer email="oberacker@fzi.de">David Oberacker</maintainer>
   <license>MIT</license>
 

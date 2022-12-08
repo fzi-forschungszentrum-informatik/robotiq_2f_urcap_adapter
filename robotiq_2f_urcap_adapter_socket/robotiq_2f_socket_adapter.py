@@ -25,7 +25,6 @@
 
 """Module that encapsulates the socket interface to the Robotiq Grippers URCap."""
 
-from multiprocessing.sharedctypes import Value
 import socket
 import threading
 import time
@@ -66,7 +65,7 @@ def clip_val(min_value: int, value: int, max_value: int) -> int:
     return max(min_value, min(value, max_value))
 
 
-class Robotiq2f85SocketAdapter:
+class Robotiq2fSocketAdapter:
     """Communicates with the gripper directly via socket with string commands."""
 
     __SET_COMMAND = 'SET'
@@ -99,7 +98,7 @@ class Robotiq2f85SocketAdapter:
 
     def connect(self, hostname: str, port: int, socket_timeout: float = 2.0) -> None:
         """
-        Connect to the Robotiq2f85 gripper at the given address.
+        Connect to a Robotiq 2 finger gripper at the given address.
 
         :param hostname: Hostname or ip.
         :param port: Port.
@@ -114,13 +113,16 @@ class Robotiq2f85SocketAdapter:
         """Close the connection with the gripper."""
         if self.socket is None:
             return
+
+        self._reset()
+
         with self.socket_lock:
             self.socket.close()
 
-    def __set_gripper_variables(
+    def set_gripper_variables(
         self,
         variable_dict: typing.OrderedDict[str, Union[int, float]]
-        ) -> bool:
+    ) -> bool:
         """
         Set the variables specified in the dict on the gripper via the socket connection.
 
@@ -142,7 +144,7 @@ class Robotiq2f85SocketAdapter:
             data = self.socket.recv(1024)
         return self._is_ack(data)
 
-    def __set_gripper_variable(self, variable: str, value: Union[int, float]):
+    def set_gripper_variable(self, variable: str, value: Union[int, float]):
         """
         Set the specified variable on the gripper via the socket connection.
 
@@ -153,9 +155,9 @@ class Robotiq2f85SocketAdapter:
 
         :return: True on successful reception of ack, false if no ack was received
         """
-        return self.__set_gripper_variables(OrderedDict([(variable, value)]))
+        return self.set_gripper_variables(OrderedDict([(variable, value)]))
 
-    def __get_gripper_variable(self, variable: str) -> int:
+    def get_gripper_variable(self, variable: str) -> int:
         """
         Get the specified variable value from the gripper using the socket connection.
 
@@ -194,14 +196,14 @@ class Robotiq2f85SocketAdapter:
 
     def _reset(self):
         """Reset the gripper."""
-        self.__set_gripper_variable(self.ACT, 0)
-        self.__set_gripper_variable(self.ATR, 0)
+        self.set_gripper_variable(self.ACT, 0)
+        self.set_gripper_variable(self.ATR, 0)
         while (
-            self.__get_gripper_variable(self.ACT) != 0 or
-            self.__get_gripper_variable(self.STA) != 0
+            self.get_gripper_variable(self.ACT) != 0 or
+            self.get_gripper_variable(self.STA) != 0
         ):
-            self.__set_gripper_variable(self.ACT, 0)
-            self.__set_gripper_variable(self.ATR, 0)
+            self.set_gripper_variable(self.ACT, 0)
+            self.set_gripper_variable(self.ATR, 0)
         time.sleep(0.5)
 
     def activate(self, auto_calibrate: bool = True):
@@ -214,26 +216,30 @@ class Robotiq2f85SocketAdapter:
         if not self.is_active:
             self._reset()
             while (
-                self.__get_gripper_variable(self.ACT) != 0 or
-                self.__get_gripper_variable(self.STA) != 0
+                self.get_gripper_variable(self.ACT) != 0 or
+                self.get_gripper_variable(self.STA) != 0
             ):
                 time.sleep(0.01)
 
-            self.__set_gripper_variable(self.ACT, 1)
+            self.set_gripper_variable(self.ACT, 1)
             time.sleep(1.0)
             while(
-                self.__get_gripper_variable(self.ACT) != 1 or
-                self.__get_gripper_variable(self.STA) != 3
+                self.get_gripper_variable(self.ACT) != 1 or
+                self.get_gripper_variable(self.STA) != 3
             ):
                 time.sleep(0.01)
 
         if auto_calibrate:
             self.auto_calibrate()
 
+    def deactivate(self):
+        if self.is_active:
+            self._reset()
+
     @property
     def is_active(self):
         """Return whether the gripper is active."""
-        status = self.__get_gripper_variable(self.STA)
+        status = self.get_gripper_variable(self.STA)
         return GripperStatus(status) == GripperStatus.ACTIVE
 
     @property
@@ -279,17 +285,17 @@ class Robotiq2f85SocketAdapter:
     @property
     def force(self) -> int:
         """Return the current force used by the gripper."""
-        return self.__get_gripper_variable(self.FOR)
+        return self.get_gripper_variable(self.FOR)
 
     @property
     def speed(self) -> int:
         """Return the current speed used by the gripper."""
-        return self.__get_gripper_variable(self.SPE)
+        return self.get_gripper_variable(self.SPE)
 
     @property
     def position(self) -> int:
         """Return the current position as returned by the physical hardware."""
-        return self.__get_gripper_variable(self.POS)
+        return self.get_gripper_variable(self.POS)
 
     def auto_calibrate(self, log: bool = True) -> None:
         """
@@ -346,7 +352,8 @@ class Robotiq2f85SocketAdapter:
                 (self.GTO, 1)
             ]
         )
-        return self.__set_gripper_variables(var_dict), clip_pos
+
+        return self.set_gripper_variables(var_dict), clip_pos
 
     def move_and_wait_for_pos(
         self,
@@ -369,15 +376,15 @@ class Robotiq2f85SocketAdapter:
             raise RuntimeError("Failed to set variables for move.")
 
         # wait until the gripper acknowledges that it will try to go to the requested position
-        while self.__get_gripper_variable(self.PRE) != cmd_pos:
+        while self.get_gripper_variable(self.PRE) != cmd_pos:
             time.sleep(0.001)
 
         # wait until not moving
-        cur_obj = self.__get_gripper_variable(self.OBJ)
+        cur_obj = self.get_gripper_variable(self.OBJ)
         while ObjectStatus(cur_obj) == ObjectStatus.MOVING:
-            cur_obj = self.__get_gripper_variable(self.OBJ)
+            cur_obj = self.get_gripper_variable(self.OBJ)
 
         # report the actual position and the object status
-        final_pos = self.__get_gripper_variable(self.POS)
+        final_pos = self.get_gripper_variable(self.POS)
         final_obj = cur_obj
         return final_pos, ObjectStatus(final_obj)
