@@ -70,55 +70,55 @@ class Robotiq2fAdapterNode(Node):
             )
         )
         self.declare_parameter(
-            name="robot_max_grip_width",
+            name="max_gripper_width",
             value=0.085,
             descriptor=ParameterDescriptor(
-                name="robot_max_grip_width",
+                name="max_gripper_width",
                 type=ParameterType.PARAMETER_DOUBLE,
                 description="Maximum gripper opening width (m)."
             )
         )
         self.declare_parameter(
-            name="robot_min_grip_width",
+            name="min_gripper_width",
             value=0.0,
             descriptor=ParameterDescriptor(
-                name="robot_min_grip_width",
+                name="min_gripper_width",
                 type=ParameterType.PARAMETER_DOUBLE,
                 description="Minimum gripper opening width (m)."
             )
         )
         self.declare_parameter(
-            name="robot_max_speed",
+            name="max_gripper_speed",
             value=0.15,
             descriptor=ParameterDescriptor(
-                name="robot_max_speed",
+                name="max_gripper_speed",
                 type=ParameterType.PARAMETER_DOUBLE,
                 description="Maximum speed (m/s) at which the gripper can move."
             )
         )
         self.declare_parameter(
-            name="robot_min_speed",
+            name="min_gripper_speed",
             value=0.02,
             descriptor=ParameterDescriptor(
-                name="robot_min_speed",
+                name="min_gripper_speed",
                 type=ParameterType.PARAMETER_DOUBLE,
                 description="Minimum speed (mm/s) at which the gripper can move."
             )
         )
         self.declare_parameter(
-            name="robot_max_effort",
+            name="max_gripper_force",
             value=235.0,
             descriptor=ParameterDescriptor(
-                name="robot_max_effort",
+                name="max_gripper_force",
                 type=ParameterType.PARAMETER_DOUBLE,
                 description="Maximum effort (N) which the gripper excert."
             )
         )
         self.declare_parameter(
-            name="robot_min_effort",
+            name="min_gripper_force",
             value=20.0,
             descriptor=ParameterDescriptor(
-                name="robot_max_effort",
+                name="max_gripper_force",
                 type=ParameterType.PARAMETER_DOUBLE,
                 description="Minimum effort (N) which the gripper excert."
             )
@@ -134,31 +134,31 @@ class Robotiq2fAdapterNode(Node):
             if robot_port is None:
                 raise ParameterUninitializedException(parameter_name="robot_port")
 
-            robot_max_grip_width_m: Optional[float] = \
-                self.get_parameter("robot_max_grip_width").value
-            if robot_max_grip_width_m is None:
-                raise ParameterUninitializedException(parameter_name="robot_max_grip_width")
+            max_gripper_width_m: Optional[float] = \
+                self.get_parameter("max_gripper_width").value
+            if max_gripper_width_m is None:
+                raise ParameterUninitializedException(parameter_name="max_gripper_width")
 
-            robot_min_grip_width_m: Optional[float] = \
-                self.get_parameter("robot_min_grip_width").value
-            if robot_min_grip_width_m is None:
-                raise ParameterUninitializedException(parameter_name="robot_min_grip_width")
+            min_gripper_width_m: Optional[float] = \
+                self.get_parameter("min_gripper_width").value
+            if min_gripper_width_m is None:
+                raise ParameterUninitializedException(parameter_name="min_gripper_width")
 
-            robot_max_speed_m_s: Optional[float] = self.get_parameter("robot_max_speed").value
-            if robot_max_speed_m_s is None:
-                raise ParameterUninitializedException(parameter_name="robot_max_speed")
+            max_gripper_speed_m_s: Optional[float] = self.get_parameter("max_gripper_speed").value
+            if max_gripper_speed_m_s is None:
+                raise ParameterUninitializedException(parameter_name="max_gripper_speed")
 
-            robot_min_speed_m_s: Optional[float] = self.get_parameter("robot_min_speed").value
-            if robot_min_speed_m_s is None:
-                raise ParameterUninitializedException(parameter_name="robot_min_speed")
+            min_gripper_speed_m_s: Optional[float] = self.get_parameter("min_gripper_speed").value
+            if min_gripper_speed_m_s is None:
+                raise ParameterUninitializedException(parameter_name="min_gripper_speed")
 
-            robot_max_effort_N: Optional[float] = self.get_parameter("robot_max_effort").value
-            if robot_max_effort_N is None:
-                raise ParameterUninitializedException(parameter_name="robot_max_effort")
+            max_gripper_force_N: Optional[float] = self.get_parameter("max_gripper_force").value
+            if max_gripper_force_N is None:
+                raise ParameterUninitializedException(parameter_name="max_gripper_force")
 
-            robot_min_effort_N: Optional[float] = self.get_parameter("robot_min_effort").value
-            if robot_min_effort_N is None:
-                raise ParameterUninitializedException(parameter_name="robot_min_effort")
+            min_gripper_force_N: Optional[float] = self.get_parameter("min_gripper_force").value
+            if min_gripper_force_N is None:
+                raise ParameterUninitializedException(parameter_name="min_gripper_force")
 
         except ParameterNotDeclaredException as exc:
             self.get_logger().error(f"Parameter not declated: {exc}")
@@ -181,8 +181,8 @@ class Robotiq2fAdapterNode(Node):
         self.get_logger().info(f"Activated Gripper on {robot_ip}:{robot_port}!")
 
         self._normalized_grip_width_factor = \
-            (robot_max_grip_width_m - robot_min_grip_width_m) / 255
-        self._normalized_grip_width_baseline = robot_max_grip_width_m
+            (max_gripper_width_m - min_gripper_width_m) / 255
+        self._normalized_grip_width_baseline = max_gripper_width_m
 
         min_position_m = \
             self.__m_value_from_normalized_grip_width(self.gripper_adapter.min_position)
@@ -193,11 +193,11 @@ class Robotiq2fAdapterNode(Node):
             f"Grip range reported by autocalibration: [{min_position_m}, {max_position_m}]"
             )
 
-        self._normalized_effort_factor = (robot_max_effort_N - robot_min_effort_N) / 255
-        self._normalized_effort_baseline = robot_min_effort_N
+        self._normalized_effort_factor = (max_gripper_force_N - min_gripper_force_N) / 255
+        self._normalized_effort_baseline = min_gripper_force_N
 
-        self._normalized_speed_factor = (robot_max_speed_m_s - robot_min_speed_m_s) / 255
-        self._normalized_speed_baseline = robot_min_speed_m_s
+        self._normalized_speed_factor = (max_gripper_speed_m_s - min_gripper_speed_m_s) / 255
+        self._normalized_speed_baseline = min_gripper_speed_m_s
 
     def __newton_value_from_normalized_effort(self, normalized_value: int) -> float:
         """
