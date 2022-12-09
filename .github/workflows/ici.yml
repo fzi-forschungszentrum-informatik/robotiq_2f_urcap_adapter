@@ -1,0 +1,24 @@
+on:
+  push:
+    branches:
+      main
+  pull_request:
+    branches:
+      main
+  schedule:
+    - cron: '04 23 * * *'
+
+jobs:
+  ici:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ROS_DISTRO: [foxy, humble, rolling]
+        ROS_REPO: [main, testing]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: 'ros-industrial/industrial_ci@master'
+        env:
+          ROS_DISTRO: ${{ matrix.ROS_DISTRO }}
+          ROS_REPO: ${{ matrix.ROS_REPO }}
