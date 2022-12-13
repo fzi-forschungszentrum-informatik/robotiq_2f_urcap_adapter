@@ -23,7 +23,7 @@ guide](https://blog.robotiq.com/hubfs/Support%20Documents/QSG/Quick_start_2Finge
 should help you getting started quickly.
 
 3) To allow the ROS2 package to properly control the gripper, some of the hardware specs need to specified via ROS parameters.
-These include the grip width (in Meters; `robot_max_grip_width`, `robot_min_grip_width`), the speed (in Meters / s; `robot_max_speed`, `robot_min_speed`) and the effort (in Newton; `robot_max_effort` `robot_min_effort`).
+These include the grip width (in Meters; `max_gripper_width`, `min_gripper_width`), the speed (in Meters / s; `max_gripper_speed`, `min_gripper_speed`) and the effort (in Newton; `max_gripper_force` `min_gripper_force`).
 The user also has to set the IP address (`robot_ip`) of the robot.
 
 4) When starting the `robotiq_2f_urcap_adapter` node the gripper will activate, if not already activated, and auto-calibrate its movement range.
