@@ -123,6 +123,15 @@ class Robotiq2fAdapterNode(Node):
                 description="Minimum effort (N) which the gripper excert."
             )
         )
+        self.declare_parameter(
+            name="use_custom_jaws",
+            value=False,
+            descriptor=ParameterDescriptor(
+                name="use_custom_jaws",
+                type=ParameterType.PARAMETER_BOOL,
+                description="Whether this gripper has non-default jaws."
+            )
+        )
 
         try:
 
@@ -160,6 +169,10 @@ class Robotiq2fAdapterNode(Node):
             if min_gripper_force_N is None:
                 raise ParameterUninitializedException(parameter_name="min_gripper_force")
 
+            use_custom_jaws: Optional[bool] = self.get_parameter("use_custom_jaws").value
+            if use_custom_jaws is None:
+                raise ParameterUninitializedException(parameter_name="use_custom_jaws")
+
         except ParameterNotDeclaredException as exc:
             self.get_logger().error(f"Parameter not declated: {exc}")
             raise RuntimeError() from exc
@@ -176,7 +189,7 @@ class Robotiq2fAdapterNode(Node):
 
         self.get_logger().info(f"Activate Gripper on {robot_ip}:{robot_port}!")
 
-        self.gripper_adapter.activate(auto_calibrate=True)
+        self.gripper_adapter.activate(auto_calibrate=True, use_custom_jaws=use_custom_jaws)
 
         self.get_logger().info(f"Activated Gripper on {robot_ip}:{robot_port}!")
 

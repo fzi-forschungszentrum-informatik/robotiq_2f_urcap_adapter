@@ -206,12 +206,15 @@ class Robotiq2fSocketAdapter:
             self.set_gripper_variable(self.ATR, 0)
         time.sleep(0.5)
 
-    def activate(self, auto_calibrate: bool = True):
+    def activate(self, auto_calibrate: bool = True, use_custom_jaws: bool = False):
         """
         Reset the activation flag in the gripper and clear previous fault flags.
 
         :param auto_calibrate: Whether to calibrate the
         minimum and maximum positions based on actual motion.
+
+        :param use_custom_jaws: Whether the gripper uses custom jaws.
+        This will tolerate a non-default closing width during auto calibration.
         """
         if not self.is_active:
             self._reset()
@@ -230,7 +233,7 @@ class Robotiq2fSocketAdapter:
                 time.sleep(0.01)
 
         if auto_calibrate:
-            self.auto_calibrate()
+            self.auto_calibrate(use_custom_jaws)
 
     def deactivate(self):
         if self.is_active:
@@ -297,12 +300,13 @@ class Robotiq2fSocketAdapter:
         """Return the current position as returned by the physical hardware."""
         return self.get_gripper_variable(self.POS)
 
-    def auto_calibrate(self, log: bool = True) -> None:
+    def auto_calibrate(self, use_custom_jaws: bool = False, log: bool = True) -> None:
         """
         Attempt to calibrate the open and closed positions.
 
         This slowly closes and opens the gripper.
 
+        :param use_custom_jaws: Whether to tolerate a non-default closed position.
         :param log: Whether to print the results to log.
         """
         # first try to open in case we are holding an object
@@ -312,8 +316,10 @@ class Robotiq2fSocketAdapter:
 
         # try to close as far as possible, and record the number
         (position, status) = self.move_and_wait_for_pos(self.closed_position, 64, 1)
-        if ObjectStatus(status) != ObjectStatus.AT_DEST:
-            raise RuntimeError(f"Calibration failed because of an object: {str(status)}")
+        if not use_custom_jaws:
+            if ObjectStatus(status) != ObjectStatus.AT_DEST:
+                raise RuntimeError(f"Calibration failed because of an object: {str(status)}." \
+                    " Set the `use_custom_jaws=True` flag when working with non-default gripper jaws.")
         assert position <= self._max_position
         self._max_position = position
 
