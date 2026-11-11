@@ -1,16 +1,10 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.22)
 project(robotiq_2f_urcap_adapter)
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-find_package(rosidl_default_generators REQUIRED)
-
-# Build actions
-rosidl_generate_interfaces(${PROJECT_NAME}
-  "action/MoveGripper.action"
-  "action/GripperCommand.action"
-  "msg/GripperCommand.msg"
-)
+find_package(rclpy REQUIRED)
+find_package(control_msgs REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

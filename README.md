@@ -14,16 +14,14 @@ Robotiq's recommended way. There seem to be two options: Directly over the
 end-effector for URe versions, and over UR's control box for the other
 versions.
 
-2) Use Robotiq's URCap to interface the gripper from UR's Polyscope. This
+2) Use Robotiq's URCap to interface the gripper from UR's PolyScope. This
 URCap seems to be better maintained by Robotiq than ROS packages and should cover all of the
-gripper's features. You should be able to get the URCap
-[here](https://robotiq.com/products/2f85-140-adaptive-robot-gripper?ref=nav_product_new_button). The
-[quick start
-guide](https://blog.robotiq.com/hubfs/Support%20Documents/QSG/Quick_start_2Finger_e-Series_nocropmarks_EN.pdf)
-should help you getting started quickly.
+gripper's features. You should be able to get the [Robotiq Gripper URCap](https://blog.robotiq.com/knowledge/how-to-install-or-uninstall-a-urcap). The
+[quick start guide](https://blog.robotiq.com/hubfs/Support%20Documents/QSG/Quick_start_2Finger_e-Series_nocropmarks_EN.pdf)
+should help you to get started quickly.
 
-3) To allow the ROS2 package to properly control the gripper, some of the hardware specs need to specified via ROS parameters.
-These include the grip width (in Meters; `max_gripper_width`, `min_gripper_width`), the speed (in Meters / s; `max_gripper_speed`, `min_gripper_speed`) and the effort (in Newton; `max_gripper_force` `min_gripper_force`).
+3) To allow the ROS2 package to properly control the gripper, some of the hardware specs need to be specified via ROS parameters.
+These include the grip width (in meters; `max_gripper_width`, `min_gripper_width`), the speed (in meters / s; `max_gripper_speed`, `min_gripper_speed`) and the effort (in Newton; `max_gripper_force` `min_gripper_force`).
 The user also has to set the IP address (`robot_ip`) of the robot.
 
 4) When starting the `robotiq_2f_urcap_adapter` node the gripper will activate, if not already activated, and auto-calibrate its movement range.
@@ -35,12 +33,12 @@ The node currently has the following parameters:
 
 - **`robot_ip`**:
   The robot's IP address
-  (*default: "192.168.0.104"*)
+  (*default: "192.168.56.101"*)
 - **`robot_port`**:
   The port where the URCap interface is running on the robot. This should usually not be changed.
   (*default: 63352*)
 - **`max_gripper_width`**:
-  The maximum opening width of a gripper in meters. Change this if your have a 2F-140 gripper.
+  The maximum opening width of a gripper in meters. Change this if you have a 2F-140 gripper.
   (*default: 0.085*)
 - **`min_gripper_width`**:
   The minimum opening width of a gripper in meters.
@@ -69,16 +67,16 @@ The node currently has the following parameters:
 ## Example
 Start the node:
 
-```
-ros2 run robotiq_2f_urcap_adapter robotiq_2f_adapter_node.py --ros-args -p robot_ip:=192.168.0.4
+```sh
+ros2 run robotiq_2f_urcap_adapter robotiq_2f_adapter_node.py --ros-args -p robot_ip:=192.168.56.101 -p max_speed:=0.15
 ```
 
 Close the gripper:
-```
-ros2 action send_goal -f /robotiq_2f_urcap_adapter/gripper_command robotiq_2f_urcap_adapter/GripperCommand '{ command: { position: 0.0, max_effort: 140, max_speed: 0.15 }}
+```sh
+ros2 action send_goal -f /robotiq_2f_urcap_adapter/gripper_command control_msgs/GripperCommand "{ command: { position: 0.0, max_effort: 140 }}"
 ```
 
 Open the gripper (assuming it's a 2F-85):
-```
-ros2 action send_goal -f /robotiq_2f_urcap_adapter/gripper_command robotiq_2f_urcap_adapter/GripperCommand '{ command: { position: 0.085, max_effort: 140, max_speed: 0.15 }}'
+```sh
+ros2 action send_goal -f /robotiq_2f_urcap_adapter/gripper_command control_msgs/GripperCommand "{ command: { position: 0.085, max_effort: 140 }}"
 ```
