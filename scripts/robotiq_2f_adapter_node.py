@@ -118,7 +118,7 @@ class Robotiq2fAdapterNode(Node):
             name="min_gripper_force",
             value=20.0,
             descriptor=ParameterDescriptor(
-                name="max_gripper_force",
+                name="min_gripper_force",
                 type=ParameterType.PARAMETER_DOUBLE,
                 description="Minimum effort (N) which the gripper excert."
             )
