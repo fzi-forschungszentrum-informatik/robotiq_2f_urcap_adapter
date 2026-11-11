@@ -27,7 +27,7 @@ from launch_ros.actions import Node
 def generate_launch_description():
 
     robot_ip_launch_arg = DeclareLaunchArgument(
-        "robot_ip", default_value="192.168.0.104"
+        "robot_ip", default_value="192.168.56.101"
     )
     robot_port_launch_arg = DeclareLaunchArgument(
         "robot_port", default_value="63352"

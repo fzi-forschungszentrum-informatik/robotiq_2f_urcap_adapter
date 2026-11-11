@@ -35,7 +35,7 @@ The node currently has the following parameters:
 
 - **`robot_ip`**:
   The robot's IP address
-  (*default: "192.168.0.104"*)
+  (*default: "192.168.56.101"*)
 - **`robot_port`**:
   The port where the URCap interface is running on the robot. This should usually not be changed.
   (*default: 63352*)
@@ -70,7 +70,7 @@ The node currently has the following parameters:
 Start the node:
 
 ```
-ros2 run robotiq_2f_urcap_adapter robotiq_2f_adapter_node.py --ros-args -p robot_ip:=192.168.0.4
+ros2 run robotiq_2f_urcap_adapter robotiq_2f_adapter_node.py --ros-args -p robot_ip:=192.168.56.101
 ```
 
 Close the gripper:

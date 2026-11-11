@@ -53,7 +53,7 @@ class Robotiq2fAdapterNode(Node):
 
         self.declare_parameter(
             name="robot_ip",
-            value="192.168.0.104",
+            value="192.168.56.101",
             descriptor=ParameterDescriptor(
                 name="robot_ip",
                 type=ParameterType.PARAMETER_STRING,
