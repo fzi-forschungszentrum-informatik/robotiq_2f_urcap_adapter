@@ -14,14 +14,14 @@ Robotiq's recommended way. There seem to be two options: Directly over the
 end-effector for URe versions, and over UR's control box for the other
 versions.
 
-2) Use Robotiq's URCap to interface the gripper from UR's Polyscope. This
+2) Use Robotiq's URCap to interface the gripper from UR's PolyScope. This
 URCap seems to be better maintained by Robotiq than ROS packages and should cover all of the
 gripper's features. You should be able to get the [Robotiq Gripper URCap](https://blog.robotiq.com/knowledge/how-to-install-or-uninstall-a-urcap). The
 [quick start guide](https://blog.robotiq.com/hubfs/Support%20Documents/QSG/Quick_start_2Finger_e-Series_nocropmarks_EN.pdf)
-should help you getting started quickly.
+should help you to get started quickly.
 
-3) To allow the ROS2 package to properly control the gripper, some of the hardware specs need to specified via ROS parameters.
-These include the grip width (in Meters; `max_gripper_width`, `min_gripper_width`), the speed (in Meters / s; `max_gripper_speed`, `min_gripper_speed`) and the effort (in Newton; `max_gripper_force` `min_gripper_force`).
+3) To allow the ROS2 package to properly control the gripper, some of the hardware specs need to be specified via ROS parameters.
+These include the grip width (in meters; `max_gripper_width`, `min_gripper_width`), the speed (in meters / s; `max_gripper_speed`, `min_gripper_speed`) and the effort (in Newton; `max_gripper_force` `min_gripper_force`).
 The user also has to set the IP address (`robot_ip`) of the robot.
 
 4) When starting the `robotiq_2f_urcap_adapter` node the gripper will activate, if not already activated, and auto-calibrate its movement range.
@@ -38,7 +38,7 @@ The node currently has the following parameters:
   The port where the URCap interface is running on the robot. This should usually not be changed.
   (*default: 63352*)
 - **`max_gripper_width`**:
-  The maximum opening width of a gripper in meters. Change this if your have a 2F-140 gripper.
+  The maximum opening width of a gripper in meters. Change this if you have a 2F-140 gripper.
   (*default: 0.085*)
 - **`min_gripper_width`**:
   The minimum opening width of a gripper in meters.

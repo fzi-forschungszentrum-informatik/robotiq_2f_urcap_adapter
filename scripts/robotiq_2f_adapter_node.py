@@ -207,7 +207,7 @@ class Robotiq2fAdapterNode(Node):
 
         The calculation is dependent on the effort limits of the robot.
 
-        :param normalized_value: The normalized effort value that should be transfered into a
+        :param normalized_value: The normalized effort value that should be transferred into a
         Newton value.
         :type normalized_value: int
         :raises ValueError: If the provided normalized_value is not within the bounds of 0-255,
