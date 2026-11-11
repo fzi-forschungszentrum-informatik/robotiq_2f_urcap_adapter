@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 """Module containing a ROS node for Robotiq 2f grippers <-> ROS action communication."""
 
@@ -30,7 +31,7 @@ from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node, ParameterDescriptor, ParameterType,\
     ParameterNotDeclaredException, ParameterUninitializedException
 
-from robotiq_2f_urcap_adapter.action import GripperCommand as GripperCommandAction
+from control_msgs.action import GripperCommand as GripperCommandAction
 
 from robotiq_2f_urcap_adapter_socket.robotiq_2f_socket_adapter import ObjectStatus
 from robotiq_2f_urcap_adapter_socket.robotiq_2f_socket_adapter import Robotiq2fSocketAdapter
@@ -199,6 +200,8 @@ class Robotiq2fAdapterNode(Node):
         self._normalized_speed_factor = (max_gripper_speed_m_s - min_gripper_speed_m_s) / 255
         self._normalized_speed_baseline = min_gripper_speed_m_s
 
+        self._gripper_speed_m_s = max_gripper_speed_m_s
+
     def __newton_value_from_normalized_effort(self, normalized_value: int) -> float:
         """
         Calculate a effort value in Newton for a normalized effort value [0-255].
@@ -361,7 +364,6 @@ class Robotiq2fAdapterNode(Node):
             return GripperCommandAction.Result(
                 position=self.__m_value_from_normalized_grip_width(self.gripper_adapter.position),
                 effort=0.0,
-                speed=0.0,
                 stalled=False,
                 reached_goal=False
             )
@@ -371,7 +373,6 @@ class Robotiq2fAdapterNode(Node):
             return GripperCommandAction.Result(
                 position=grip_width_m,
                 effort=0,
-                speed=0,
                 stalled=False,
                 reached_goal=True
             )
@@ -388,7 +389,6 @@ class Robotiq2fAdapterNode(Node):
                     self.gripper_adapter.position
                     ),
                 effort=0.0,
-                speed=0.0,
                 stalled=False,
                 reached_goal=False
             )
@@ -405,7 +405,6 @@ class Robotiq2fAdapterNode(Node):
                         effort=self.__newton_value_from_normalized_effort(
                             self.gripper_adapter.force
                             ),
-                        speed=self.__m_s_Value_from_normalized_speed(self.gripper_adapter.speed),
                         stalled=False,
                         reached_goal=False
                     )
@@ -439,7 +438,6 @@ class Robotiq2fAdapterNode(Node):
                     GripperCommandAction.Feedback(
                         position=self.__m_value_from_normalized_grip_width(prev_position),
                         effort=self.__newton_value_from_normalized_effort(prev_effort),
-                        speed=self.__m_s_Value_from_normalized_speed(prev_speed),
                         stalled=False,
                         reached_goal=False
                     )
@@ -450,7 +448,6 @@ class Robotiq2fAdapterNode(Node):
             return GripperCommandAction.Result(
                 position=self.__m_value_from_normalized_grip_width(self.gripper_adapter.position),
                 effort=self.__newton_value_from_normalized_effort(self.gripper_adapter.force),
-                speed=self.__m_s_Value_from_normalized_speed(self.gripper_adapter.speed),
                 stalled=False,
                 reached_goal=True
             )
@@ -465,7 +462,6 @@ class Robotiq2fAdapterNode(Node):
             return GripperCommandAction.Result(
                 position=self.__m_value_from_normalized_grip_width(self.gripper_adapter.position),
                 effort=self.__newton_value_from_normalized_effort(self.gripper_adapter.force),
-                speed=self.__m_s_Value_from_normalized_speed(self.gripper_adapter.speed),
                 stalled=True,
                 reached_goal=False
             )
@@ -473,7 +469,6 @@ class Robotiq2fAdapterNode(Node):
         return GripperCommandAction.Result(
                 position=self.__m_value_from_normalized_grip_width(self.gripper_adapter.position),
                 effort=self.__newton_value_from_normalized_effort(prev_effort),
-                speed=self.__m_s_Value_from_normalized_speed(prev_speed),
                 stalled=False,
                 reached_goal=False
             )
@@ -491,7 +486,7 @@ class Robotiq2fAdapterNode(Node):
             goal_handle=goal_handle,
             grip_width_m=goal.command.position,
             max_effort_N=goal.command.max_effort,
-            max_speed_m_s=goal.command.max_speed
+            max_speed_m_s=self._gripper_speed_m_s
         )
 
 
