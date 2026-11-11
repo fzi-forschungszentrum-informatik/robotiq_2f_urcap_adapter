@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 """Module containing a ROS node for Robotiq 2f grippers <-> ROS action communication."""
 
