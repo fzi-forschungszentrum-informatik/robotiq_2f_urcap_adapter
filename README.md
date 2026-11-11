@@ -16,10 +16,8 @@ versions.
 
 2) Use Robotiq's URCap to interface the gripper from UR's Polyscope. This
 URCap seems to be better maintained by Robotiq than ROS packages and should cover all of the
-gripper's features. You should be able to get the URCap
-[here](https://robotiq.com/products/2f85-140-adaptive-robot-gripper?ref=nav_product_new_button). The
-[quick start
-guide](https://blog.robotiq.com/hubfs/Support%20Documents/QSG/Quick_start_2Finger_e-Series_nocropmarks_EN.pdf)
+gripper's features. You should be able to get the [Robotiq Gripper URCap](https://blog.robotiq.com/knowledge/how-to-install-or-uninstall-a-urcap). The
+[quick start guide](https://blog.robotiq.com/hubfs/Support%20Documents/QSG/Quick_start_2Finger_e-Series_nocropmarks_EN.pdf)
 should help you getting started quickly.
 
 3) To allow the ROS2 package to properly control the gripper, some of the hardware specs need to specified via ROS parameters.
