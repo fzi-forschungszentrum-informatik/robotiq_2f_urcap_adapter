@@ -165,7 +165,7 @@ class Robotiq2fAdapterNode(Node):
             raise RuntimeError() from exc
         except ParameterUninitializedException as exc:
             self.get_logger().error(f"Parameter uninitialized: {exc}")
-            raise RuntimeError() from exc\
+            raise RuntimeError() from exc
 
         self.get_logger().info(f"Connecting to URCAP on {robot_ip}:{robot_port}!")
 
