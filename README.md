@@ -69,16 +69,16 @@ The node currently has the following parameters:
 ## Example
 Start the node:
 
-```
+```sh
 ros2 run robotiq_2f_urcap_adapter robotiq_2f_adapter_node.py --ros-args -p robot_ip:=192.168.56.101 -p max_speed:=0.15
 ```
 
 Close the gripper:
-```
+```sh
 ros2 action send_goal -f /robotiq_2f_urcap_adapter/gripper_command control_msgs/GripperCommand "{ command: { position: 0.0, max_effort: 140 }}"
 ```
 
 Open the gripper (assuming it's a 2F-85):
-```
+```sh
 ros2 action send_goal -f /robotiq_2f_urcap_adapter/gripper_command control_msgs/GripperCommand "{ command: { position: 0.085, max_effort: 140 }}"
 ```
